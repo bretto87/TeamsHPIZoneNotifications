@@ -10,7 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using AdaptiveCards;
+using AdaptiveCards.Templating;
+using TeamsHPIZoneNotificationsApi.Models;
+using Newtonsoft.Json.Linq;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -31,18 +33,19 @@ namespace TeamsProactiveMessageApi.Controllers
         //    _logger = logger;
         //}
 
+
         // POST api/NotifyChannel
         // BODY: message (string)
         // Creates a new message in the Teams channel configured in appsettings
         [HttpPost]
-        public ActionResult Post([FromBody] string message)
+        public ActionResult Post([FromBody] Incident incident)
         {
             try
             {
                 // load configuration from appSettings
                 configuration = configuration ??
                     new ConfigurationBuilder()
-                        .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+                        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                         .AddEnvironmentVariables()
                         .Build();
 
@@ -56,6 +59,10 @@ namespace TeamsProactiveMessageApi.Controllers
                     //await this.FetchTokenAsync(configuration, httpClient);
                     this.FetchTokenAsync(configuration, httpClient).Wait();
                 }
+
+                //string message = incident.Title;
+
+                string message = string.Format("<b>{0}</b><br /><br /><a href='{2}' target='_new'>{1}</a><br />{3}", incident.Title, incident.Id, incident.Link, incident.Description);
 
                 // make call to Teams REST API to POST a NEW message to a channel
                 using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, configuration["ConversationsUrl"]))
@@ -76,7 +83,6 @@ namespace TeamsProactiveMessageApi.Controllers
                              "}" +
                         "}," +
                         "\"activity\": {" +
-                            "\"type\": \"message\"," +
                             "\"type\": \"message\"," +
                             "\"text\": \"" + message + "\"," +
                             "\"attachments\": []," +
@@ -132,7 +138,7 @@ namespace TeamsProactiveMessageApi.Controllers
         // BODY: nothing
         // Updates an existing message in a Teams channel
         [HttpPut("{id}")]
-        public ActionResult Put(string id, [FromBody] string message)
+        public ActionResult Put(string id, [FromBody] Incident incident)
         {
             try
             {
@@ -155,6 +161,8 @@ namespace TeamsProactiveMessageApi.Controllers
 
                 //TODO: have them pass id AND activityid instead?
                 string messageId = id.Split(";messageid=")[1];
+                
+                string message = string.Format("<b>{0}</b><br /><br /><a href='{2}' target='_new'>{1}</a><br />{3}", incident.Title, incident.Id, incident.Link, incident.Description);
 
                 // make call to Teams REST API to UPDATE an EXISTING message in a channel
                 var updateUrl = $"{configuration["ConversationsUrl"]}/{id}/activities/{messageId}";
@@ -165,7 +173,7 @@ namespace TeamsProactiveMessageApi.Controllers
 
                     var payloadString = "{" +
                         "\"type\": \"message\"," +
-                        "\"text\": \"[UPDATED] :: " + message + "\"," +
+                        "\"text\": \"" + message + "\"," +
                         "\"attachments\": []," +
                         "\"entities\": []" +
                       "}" +
@@ -199,7 +207,7 @@ namespace TeamsProactiveMessageApi.Controllers
         // BODY: nothing
         // Updates an existing message in a Teams channel
         [HttpPost("{id}")]
-        public ActionResult Post(string id, [FromBody] string message)
+        public ActionResult Post(string id, [FromBody] Incident incident)
         {
             try
             {
@@ -223,6 +231,8 @@ namespace TeamsProactiveMessageApi.Controllers
                 //TODO: have them pass id AND activityid instead?
                 string messageId = id.Split(";messageid=")[1];
 
+                string message = string.Format("<b>{0}</b><br /><br /><a href='{2}' target='_new'>{1}</a><br />{3}", incident.Title, incident.Id, incident.Link, incident.Description);
+
                 // make call to Teams REST API to UPDATE an EXISTING message in a channel
                 var updateUrl = $"{configuration["ConversationsUrl"]}/{id}/activities/{messageId}";
 
@@ -232,7 +242,7 @@ namespace TeamsProactiveMessageApi.Controllers
 
                     var payloadString = "{" +
                         "\"type\": \"message\"," +
-                        "\"text\": \"[MORE INFO] :: " + message + "\"," +
+                        "\"text\": \"" + message + "\"," +
                         "\"attachments\": []," +
                         "\"entities\": []" +
                       "}" +
